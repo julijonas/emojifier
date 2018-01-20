@@ -1,7 +1,6 @@
 function saveOptions(e) {
   e.preventDefault();
-  console.log(document)
-  browser.storage.local.set({
+  chrome.storage.local.set({
     apiKey: document.querySelector("#apiKey").value
   });
 }
@@ -12,12 +11,7 @@ function restoreOptions() {
     document.querySelector("#apiKey").value = result.apiKey || "";
   }
 
-  function onError(error) {
-    console.log(`Error: ${error}`);
-  }
-
-  var getting = browser.storage.local.get("apiKey");
-  getting.then(setCurrentChoice, onError);
+  var getting = chrome.storage.local.get("apiKey", setCurrentChoice);
 }
 
 document.addEventListener("DOMContentLoaded", restoreOptions);
