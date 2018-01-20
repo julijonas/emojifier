@@ -4,6 +4,7 @@ chrome.storage.local.get('apiKey', (data) => {
 });
 
 let imgNode;
+let selectedText;
 
 const popupNode = document.createElement('a');
 popupNode.textContent = 'Emojify';
@@ -15,6 +16,16 @@ popupNode.style.textDecoration = 'underline';
 popupNode.hidden = true;
 document.body.appendChild(popupNode);
 
+const popupTextNode = document.createElement('a');
+popupTextNode.textContent = 'Translate';
+popupTextNode.style.position = 'absolute';
+popupTextNode.style.background = '#58d68d ';
+popupTextNode.style.padding = '2px 3px';
+popupTextNode.style.cursor = 'pointer';
+popupTextNode.style.textDecoration = 'underline';
+popupTextNode.hidden = true;
+document.body.appendChild(popupTextNode);
+
 function convertImage(event) {
     console.log('convertImage')
     popupNode.hidden = true;
@@ -23,8 +34,7 @@ function convertImage(event) {
 }
 
 function getFaceData(){
-    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {
-        method: 'POST',
+    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {        method: 'POST',
         body: JSON.stringify({url: imgNode.src}),
         headers: {
             'Content-Type': 'application/json',
@@ -64,6 +74,21 @@ function showPopup({target}) {
     popupNode.hidden = false;
 }
 
+function showTextPopup(event) {
+    let textArea = event.target;
+    console.log('TextArea: ', textArea);
+    let left = textArea.offsetLeft + textArea.offsetWidth - popupTextNode.offsetWidth;
+    let top = textArea.offsetTop + textArea.offsetHeight - popupTextNode.offsetHeight;
+    popupTextNode.style.left = `${left}px`;
+    popupTextNode.style.top = `${top}px`;
+    popupTextNode.hidden = false;
+}
+
+function translateText(event) {
+    popupTextNode.hidden = true;
+    alert("Got selected text:   " + selectedText);
+}
+
 function hidePopup(event) {
     console.log('hidePopup')
     imgNode = event.target;
@@ -71,9 +96,29 @@ function hidePopup(event) {
 }
 
 popupNode.addEventListener('click', convertImage);
+popupTextNode.addEventListener('click', translateText);
 
 for (const node of document.images) {
     node.addEventListener('mouseover', showPopup);
     //node.addEventListener('mouseout', hidePopup);
 }
 
+document.onmouseup = checkSelectedText;
+
+function checkSelectedText() {
+    let text = getSelectedText();
+    if (text) {
+        selectedText = text;
+        showTextPopup(event);
+    }
+}
+
+function getSelectedText() {
+    let text = "";
+    if (typeof window.getSelection != "undefined") {
+        text = window.getSelection().toString();
+    } else if (typeof document.selection != "undefined" && document.selection.type == "Text") {
+        text = document.selection.createRange().text;
+    }
+    return text;
+}
