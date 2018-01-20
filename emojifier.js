@@ -20,6 +20,7 @@ popupNode.style.background = '#d1d800';
 popupNode.style.padding = '4px 6px';
 popupNode.style.cursor = 'pointer';
 popupNode.style.textDecoration = 'underline';
+popupNode.style.zIndex = 999999;
 popupNode.hidden = true;
 document.body.appendChild(popupNode);
 
@@ -36,12 +37,13 @@ document.body.appendChild(popupTextNode);
 function convertImage(event) {
     console.log('convertImage')
     popupNode.hidden = true;
-    imgNode.dataset.coverted = true;
+    imgNode.dataset.converted = true;
     getFaceData();
 }
 
 function getFaceData(){
-    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {method: 'POST',
+    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {
+        method: 'POST',
         body: JSON.stringify({url: imgNode.src}),
         headers: {
             'Content-Type': 'application/json',
@@ -57,22 +59,39 @@ function getFaceData(){
 }
 
 function replaceImage(faces) {
+    console.log('replaceImages', faces)
     for (const {faceRectangle, scores} of faces) {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = imgNode.width;
-        canvas.height = imgNode.height;
-        context.drawImage(image, 0, 0, image.width, image.height);
-        imgNode.src = canvas.toDataURL();
+        console.log(faceRectangle, scores);
+        const image = new Image();
+        image.src = imgNode.src;
+        const rect = imgNode.getBoundingClientRect();
+        console.log(faceRectangle.top)
+        console.log(faceRectangle.top * imgNode.naturalHeight / imgNode.height)
+        console.log(faceRectangle.top * imgNode.height / imgNode.naturalHeight)
+        const top = rect.top + window.scrollY + faceRectangle.top * imgNode.height / imgNode.naturalHeight;
+        const left = rect.left + window.scrollX + faceRectangle.left * imgNode.width / imgNode.naturalWidth;
+        image.style.position = 'absolute';
+        image.style.top = `${top}px`;
+        image.style.left = `${left}px`;
+        image.style.zIndex = 999999;
+        image.style.width = `${faceRectangle.width}px`;
+        image.style.height = `${faceRectangle.height}px`;
+        image.dataset.converted = true;
+        document.body.appendChild(image);
+
+        //const canvas = document.createElement('canvas');
+        //const context = canvas.getContext('2d');
+        //image.crossOrigin = 'Anonymous';
+        //canvas.width = image.width;
+        //canvas.height = image.height;
+        //context.drawImage(image, 0, 0, image.width, image.height);
+        //context.drawImage(imgNode, top, left, width, height);
+        //imgNode.src = canvas.toDataURL();
     }
 }
 
-function showPopup({target}) {
+function showPopup() {
     console.log('showPopup')
-    imgNode = target;
-    if (imgNode.dataset.coverted) {
-        return;
-    }
     const rect = imgNode.getBoundingClientRect();
     const top = rect.top + window.scrollY + imgNode.offsetHeight - popupNode.offsetHeight;
     const left = rect.left + window.scrollX + imgNode.offsetWidth - popupNode.offsetWidth;
@@ -118,10 +137,13 @@ function hidePopup(event) {
 popupNode.addEventListener('click', convertImage);
 popupTextNode.addEventListener('click', translateText);
 
-for (const node of document.images) {
-    node.addEventListener('mouseover', showPopup);
-    //node.addEventListener('mouseout', hidePopup);
-}
+document.addEventListener('mouseover', ({target}) => {
+    if (target.tagName === 'IMG' && !target.dataset.converted) {
+        imgNode = target;
+        showPopup();
+    }
+});
+
 
 document.onmouseup = checkSelectedText;
 
