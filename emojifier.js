@@ -1,7 +1,6 @@
 let apiKey;
 chrome.storage.local.get('apiKey', (data) => {
     apiKey = data.apiKey;
-    console.log('API key', apiKey);
 });
 
 let imgNode;
@@ -9,73 +8,69 @@ let imgNode;
 const popupNode = document.createElement('a');
 popupNode.textContent = 'Emojify';
 popupNode.style.position = 'absolute';
-popupNode.style.background = '#eee';
-popupNode.style.padding = '2px';
+popupNode.style.background = '#d1d800';
+popupNode.style.padding = '4px 6px';
 popupNode.style.cursor = 'pointer';
 popupNode.style.textDecoration = 'underline';
+popupNode.hidden = true;
 document.body.appendChild(popupNode);
 
 function convertImage(event) {
-    alert('hahaha');
+    console.log('convertImage')
+    popupNode.hidden = true;
+    imgNode.dataset.coverted = true;
+    getFaceData();
 }
 
-popupNode.addEventListener('click', convertImage);
-
-function getFaceData(img){
-    console.log(img);
-    let imgUrl = img.src;
-    console.log('IMG_URL:', imgUrl);
-    const requestUrl = 'https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize?';
-    let data = {
-        url: imgUrl
-    };
-
-    var myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    myHeaders.append('Ocp-Apim-Subscription-Key', 'add_key');
-
-    let fetchData = {
+function getFaceData(){
+    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {
         method: 'POST',
-        body: JSON.stringify(data), 
-        headers: myHeaders
-    };
-
-    fetch(requestUrl, fetchData)
-      .then((resp) => resp.json())
-      .then(function(resp) {
-        // Here you get the data to modify as you please
-        if (resp.length > 0) {
-            console.log(resp);
-        } else {
-            console.log('No face detected');
+        body: JSON.stringify({url: imgNode.src}),
+        headers: {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': apiKey
         }
-        
-        })
-      
-      .catch(function(error) {
-        // If there is any error you will catch them here
+    }).then((resp) => resp.json())
+    .then((resp) => {
+        replaceImage(resp);
+    })
+    .catch((error) => {
         console.log(error);
-      });
+    });
 }
 
-function showPopup(event) {
-    imgNode = event.target;
-    let left = imgNode.offsetLeft + imgNode.offsetWidth - popupNode.offsetWidth;
-    let top = imgNode.offsetTop + imgNode.offsetHeight - popupNode.offsetHeight;
-    popupNode.style.left = `${left}px`;
+function replaceImage(faces) {
+    for (const {faceRectangle, scores} of faces) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = imgNode.width;
+        canvas.height = imgNode.height;
+        context.drawImage(image, 0, 0, image.width, image.height);
+        imgNode.src = canvas.toDataURL();
+    }
+}
+
+function showPopup({target}) {
+    console.log('showPopup')
+    imgNode = target;
+    if (imgNode.dataset.coverted) {
+        return;
+    }
+    const rect = imgNode.getBoundingClientRect();
+    const top = rect.top + window.scrollY + imgNode.offsetHeight - popupNode.offsetHeight;
+    const left = rect.left + window.scrollX + imgNode.offsetWidth - popupNode.offsetWidth;
     popupNode.style.top = `${top}px`;
+    popupNode.style.left = `${left}px`;
     popupNode.hidden = false;
-    getFaceData(event.target);
-    console.log(event);
-
-
 }
 
 function hidePopup(event) {
+    console.log('hidePopup')
     imgNode = event.target;
     popupNode.hidden = true;
-    console.log(event);
 }
+
+popupNode.addEventListener('click', convertImage);
 
 for (const node of document.images) {
     node.addEventListener('mouseover', showPopup);

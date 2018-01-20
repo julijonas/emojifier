@@ -6,12 +6,9 @@ function saveOptions(e) {
 }
 
 function restoreOptions() {
-
-  function setCurrentChoice(result) {
-    document.querySelector("#apiKey").value = result.apiKey || "";
-  }
-
-  var getting = chrome.storage.local.get("apiKey", setCurrentChoice);
+    chrome.storage.local.get("apiKey", ({apiKey}) => {
+        document.querySelector("#apiKey").value = result.apiKey || "";
+    });
 }
 
 document.addEventListener("DOMContentLoaded", restoreOptions);
