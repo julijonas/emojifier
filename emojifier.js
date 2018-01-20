@@ -1,6 +1,13 @@
-let apiKey;
-chrome.storage.local.get('apiKey', (data) => {
-    apiKey = data.apiKey;
+let apiEmojiKey;
+let apiTextKey;
+chrome.storage.local.get('apiEmojiKey', (data) => {
+    apiEmojiKey = data.apiEmojiKey;
+    console.log('Emoji API key: ', apiEmojiKey);
+});
+chrome.storage.local.get('apiTextKey', (data) => {
+    apiTextKey = data.apiTextKey;
+    console.log('Text API key: ', apiTextKey);
+
 });
 
 let imgNode;
@@ -34,11 +41,11 @@ function convertImage(event) {
 }
 
 function getFaceData(){
-    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {        method: 'POST',
+    fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {method: 'POST',
         body: JSON.stringify({url: imgNode.src}),
         headers: {
             'Content-Type': 'application/json',
-            'Ocp-Apim-Subscription-Key': apiKey
+            'Ocp-Apim-Subscription-Key': apiEmojiKey
         }
     }).then((resp) => resp.json())
     .then((resp) => {
@@ -86,6 +93,19 @@ function showTextPopup(event) {
 
 function translateText(event) {
     popupTextNode.hidden = true;
+    fetch('https://api.microsofttranslator.com/V2/Http.svc/Translate', {method: 'POST',
+        body: JSON.stringify({text: selectedText, from: 'en', to: 'lt'}),
+        headers: {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': apiTextKey
+        }
+    })
+    .then((resp) => {
+        console.log(resp);
+    })
+    .catch((error) => {
+        console.log(error);
+    });
     alert("Got selected text:   " + selectedText);
 }
 
