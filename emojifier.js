@@ -1,3 +1,8 @@
+let apiKey;
+browser.storage.local.get('apiKey').then((data) => {
+    apiKey = data.apiKey;
+    console.log('API key', apiKey);
+});
 
 let imgNode;
 

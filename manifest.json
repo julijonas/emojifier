@@ -10,11 +10,17 @@
     "48": "icons/border-48.png"
   },
 
+  "options_ui": {
+    "page": "options.html"
+  },
+
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["emojifier.js"]
     }
-  ]
+  ],
+
+  "permissions": ["storage"]
 
 }
