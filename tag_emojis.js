@@ -1,5 +1,4 @@
-
-const emojis = {
+export const emojis = {
     "001-embarrassed-4.png": [0, 0, 0, 0.3, 0.4, 0, 0, 0.3],
     "002-sad-14.png": [0.2, 0.1, 0.1, 0.1, 0, 0, 0.5, 0],
     "004-surprised-1.png": [0, 0, 0, 0.2, 0, 0, 0, 0.8],
