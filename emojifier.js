@@ -1,3 +1,4 @@
+
 let apiEmojiKey;
 let apiTextKey;
 chrome.storage.local.get('apiEmojiKey', (data) => {
@@ -63,7 +64,7 @@ function replaceImage(faces) {
     for (const {faceRectangle, scores} of faces) {
         console.log(faceRectangle, scores);
         const image = new Image();
-        image.src = imgNode.src;
+        image.src = chrome.extension.getURL(`emojis/${getClosestEmoji(scores)}`);
         const rect = imgNode.getBoundingClientRect();
         console.log(faceRectangle.top)
         console.log(faceRectangle.top * imgNode.naturalHeight / imgNode.height)

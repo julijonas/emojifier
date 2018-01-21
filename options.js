@@ -13,7 +13,7 @@ function restoreOptions() {
         document.querySelector("#apiEmojiKey").value = result.apiEmojiKey || "";
     });
     chrome.storage.local.get("apiTextKey", ({apiTextKey}) => {
-        document.querySelector("#apiTextKey").value = result.apiEmojiKey || "";
+        document.querySelector("#apiTextKey").value = result.apiTextKey || "";
     });
 }
 
