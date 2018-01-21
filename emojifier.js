@@ -62,14 +62,18 @@ function addEmojis(imgNode, faces) {
         const image = new Image();
         image.src = chrome.extension.getURL(`emojis/${getClosestEmoji(scores)}`);
         const rect = imgNode.getBoundingClientRect();
-        const top = rect.top + window.scrollY + faceRectangle.top * imgNode.height / imgNode.naturalHeight;
-        const left = rect.left + window.scrollX + faceRectangle.left * imgNode.width / imgNode.naturalWidth;
+        const ratioX = imgNode.width / imgNode.naturalWidth;
+        const ratioY = imgNode.height / imgNode.naturalHeight;
+        const left = rect.left + window.scrollX + faceRectangle.left * ratioX;
+        const top = rect.top + window.scrollY + faceRectangle.top * ratioY;
+        const width = faceRectangle.width * ratioX;
+        const height = faceRectangle.height * ratioY;
         image.style.position = 'absolute';
         image.style.top = `${top}px`;
         image.style.left = `${left}px`;
         image.style.zIndex = 999999;
-        image.style.width = `${faceRectangle.width}px`;
-        image.style.height = `${faceRectangle.height}px`;
+        image.style.width = `${width}px`;
+        image.style.height = `${height}px`;
         image.classList.add('emojifierEmoji');
         emojiParent.appendChild(image);
     }
@@ -116,19 +120,28 @@ popupNode.addEventListener('click', () => findAndAddEmojis(currentImage));
 popupTextNode.addEventListener('click', translateText);
 
 document.addEventListener('mouseover', ({target}) => {
-    if (target.tagName === 'IMG' && !target.classList.contains('emojifierConverted') &&
-        !target.classList.contains('emojifierEmoji')) {
+    if (isValidImage(target)) {
         currentImage = target;
         showPopup(target);
     }
 });
 
+function isValidImage(image) {
+    return image.tagName === 'IMG' &&
+        !image.classList.contains('emojifierConverted') &&
+        !image.classList.contains('emojifierEmoji') &&
+        image.naturalWidth >= 36 && image.naturalHeight >= 36 &&
+        !image.src.startsWith('data:');
+}
+
 chrome.runtime.onMessage.addListener((message) => {
     if (message.command === "emojify") {
         let i = 0;
         for (const image of document.images) {
-            setTimeout(() => findAndAddEmojis(image), 1000 * i);
-            ++i;
+            if (isValidImage(image)) {
+                setTimeout(() => findAndAddEmojis(image), 500 * i);
+                ++i;
+            }
         }
     } else if (message.command === "reset") {
         emojiParent.innerHTML = '';
