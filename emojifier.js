@@ -11,7 +11,6 @@ chrome.storage.local.get('apiTextKey', (data) => {
 
 });
 
-let imgNode;
 let selectedText;
 
 const popupNode = document.createElement('a');
@@ -35,14 +34,13 @@ popupTextNode.style.textDecoration = 'underline';
 popupTextNode.hidden = true;
 document.body.appendChild(popupTextNode);
 
-function convertImage(event) {
-    console.log('convertImage')
-    popupNode.hidden = true;
-    imgNode.dataset.converted = true;
-    getFaceData();
-}
+const emojiParent = document.createElement('div');
+document.body.appendChild(emojiParent);
 
-function getFaceData(){
+function findAndAddEmojis(imgNode) {
+    popupNode.hidden = true;
+    imgNode.classList.add('emojifierConverted');
+
     fetch('https://westus.api.cognitive.microsoft.com/emotion/v1.0/recognize', {
         method: 'POST',
         body: JSON.stringify({url: imgNode.src}),
@@ -52,23 +50,18 @@ function getFaceData(){
         }
     }).then((resp) => resp.json())
     .then((resp) => {
-        replaceImage(resp);
+        addEmojis(imgNode, resp);
     })
     .catch((error) => {
         console.log(error);
     });
 }
 
-function replaceImage(faces) {
-    console.log('replaceImages', faces)
+function addEmojis(imgNode, faces) {
     for (const {faceRectangle, scores} of faces) {
-        console.log(faceRectangle, scores);
         const image = new Image();
         image.src = chrome.extension.getURL(`emojis/${getClosestEmoji(scores)}`);
         const rect = imgNode.getBoundingClientRect();
-        console.log(faceRectangle.top)
-        console.log(faceRectangle.top * imgNode.naturalHeight / imgNode.height)
-        console.log(faceRectangle.top * imgNode.height / imgNode.naturalHeight)
         const top = rect.top + window.scrollY + faceRectangle.top * imgNode.height / imgNode.naturalHeight;
         const left = rect.left + window.scrollX + faceRectangle.left * imgNode.width / imgNode.naturalWidth;
         image.style.position = 'absolute';
@@ -77,28 +70,18 @@ function replaceImage(faces) {
         image.style.zIndex = 999999;
         image.style.width = `${faceRectangle.width}px`;
         image.style.height = `${faceRectangle.height}px`;
-        image.dataset.converted = true;
-        document.body.appendChild(image);
-
-        //const canvas = document.createElement('canvas');
-        //const context = canvas.getContext('2d');
-        //image.crossOrigin = 'Anonymous';
-        //canvas.width = image.width;
-        //canvas.height = image.height;
-        //context.drawImage(image, 0, 0, image.width, image.height);
-        //context.drawImage(imgNode, top, left, width, height);
-        //imgNode.src = canvas.toDataURL();
+        image.classList.add('emojifierEmoji');
+        emojiParent.appendChild(image);
     }
 }
 
-function showPopup() {
-    console.log('showPopup')
+function showPopup(imgNode) {
+    popupNode.hidden = false;
     const rect = imgNode.getBoundingClientRect();
     const top = rect.top + window.scrollY + imgNode.offsetHeight - popupNode.offsetHeight;
     const left = rect.left + window.scrollX + imgNode.offsetWidth - popupNode.offsetWidth;
     popupNode.style.top = `${top}px`;
     popupNode.style.left = `${left}px`;
-    popupNode.hidden = false;
 }
 
 function showTextPopup(event) {
@@ -129,22 +112,31 @@ function translateText(event) {
     alert("Got selected text:   " + selectedText);
 }
 
-function hidePopup(event) {
-    console.log('hidePopup')
-    imgNode = event.target;
-    popupNode.hidden = true;
-}
-
-popupNode.addEventListener('click', convertImage);
+popupNode.addEventListener('click', () => findAndAddEmojis(currentImage));
 popupTextNode.addEventListener('click', translateText);
 
 document.addEventListener('mouseover', ({target}) => {
-    if (target.tagName === 'IMG' && !target.dataset.converted) {
-        imgNode = target;
-        showPopup();
+    if (target.tagName === 'IMG' && !target.classList.contains('emojifierConverted') &&
+        !target.classList.contains('emojifierEmoji')) {
+        currentImage = target;
+        showPopup(target);
     }
 });
 
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.command === "emojify") {
+        let i = 0;
+        for (const image of document.images) {
+            setTimeout(() => findAndAddEmojis(image), 1000 * i);
+            ++i;
+        }
+    } else if (message.command === "reset") {
+        emojiParent.innerHTML = '';
+        for (const image of document.getElementsByClassName('emojifierConverted')) {
+            image.classList.remove('emojifierConverted');
+        }
+    }
+});
 
 document.onmouseup = checkSelectedText;
 

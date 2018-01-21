@@ -7,7 +7,8 @@
   "description": "Swaps faces with emojis using Microsoft Emotion API.",
 
   "icons": {
-    "48": "icons/border-48.png"
+    "48": "icons/poo-48.png",
+    "96": "icons/poo-96.png"
   },
 
   "options_ui": {
@@ -22,11 +23,18 @@
     }
   ],
 
-  "permissions": [
-    "storage",
-    "<all_urls>"
- ],
+    "permissions": [
+        "activeTab",
+        "storage",
+        "<all_urls>"
+    ],
 
-  "web_accessible_resources": ["emojis/*.png"]
+  "web_accessible_resources": ["emojis/*.png"],
+
+  "browser_action": {
+    "default_icon": "icons/poo-32.png",
+    "default_title": "Emojifier",
+    "default_popup": "popup/popup.html"
+  }
 
 }
