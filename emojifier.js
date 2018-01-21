@@ -48,7 +48,13 @@ function findAndAddEmojis(imgNode) {
             'Content-Type': 'application/json',
             'Ocp-Apim-Subscription-Key': apiEmojiKey
         }
-    }).then((resp) => resp.json())
+    }).then((resp) => {
+        if (resp.ok) {
+            return resp.json();
+        } else {
+            console.error('Response error', resp);
+        }
+    })
     .then((resp) => {
         addEmojis(imgNode, resp);
     })
@@ -62,8 +68,8 @@ function addEmojis(imgNode, faces) {
         const image = new Image();
         image.src = chrome.extension.getURL(`emojis/${getClosestEmoji(scores)}`);
         const rect = imgNode.getBoundingClientRect();
-        const ratioX = imgNode.width / imgNode.naturalWidth;
-        const ratioY = imgNode.height / imgNode.naturalHeight;
+        const ratioX = imgNode.scrollWidth / imgNode.dataset.naturalWidth;
+        const ratioY = imgNode.scrollHeight / imgNode.dataset.naturalHeight;
         const left = rect.left + window.scrollX + faceRectangle.left * ratioX;
         const top = rect.top + window.scrollY + faceRectangle.top * ratioY;
         const width = faceRectangle.width * ratioX;
@@ -127,11 +133,38 @@ document.addEventListener('mouseover', ({target}) => {
 });
 
 function isValidImage(image) {
-    return image.tagName === 'IMG' &&
-        !image.classList.contains('emojifierConverted') &&
-        !image.classList.contains('emojifierEmoji') &&
-        image.naturalWidth >= 36 && image.naturalHeight >= 36 &&
-        !image.src.startsWith('data:');
+    if (image.tagName !== 'IMG' && !image.style.backgroundImage) {
+        return false;
+    }
+
+    if (image.classList.contains('emojifierConverted') ||
+        image.classList.contains('emojifierEmoji')) {
+        return false;
+    }
+
+    let url;
+    if (image.tagName === 'IMG') {
+        url = image.src;
+    } else {
+        url = image.style.backgroundImage;
+    }
+
+    if (url.startsWith('data:')) {
+        return false;
+    }
+
+    let naturalWidth, naturalHeight;
+    if (image.tagName === 'IMG') {
+        image.dataset.naturalWidth = image.naturalWidth;
+        image.dataset.naturalHeight = image.naturalHeight;
+    } else {
+        const testImage = new Image();
+        testImage.src = image.style.backgroundImage;
+        image.dataset.naturalWidth = testImage.width;
+        image.dataset.naturalHeight = testImage.height;
+    }
+
+    return image.dataset.naturalWidth >= 36 && image.dataset.naturalHeight >= 36;
 }
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -139,7 +172,7 @@ chrome.runtime.onMessage.addListener((message) => {
         let i = 0;
         for (const image of document.images) {
             if (isValidImage(image)) {
-                setTimeout(() => findAndAddEmojis(image), 500 * i);
+                setTimeout(() => findAndAddEmojis(image), 100 * i);
                 ++i;
             }
         }
