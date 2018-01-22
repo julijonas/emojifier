@@ -34,9 +34,6 @@ popupTextNode.style.textDecoration = 'underline';
 popupTextNode.hidden = true;
 document.body.appendChild(popupTextNode);
 
-const emojiParent = document.createElement('div');
-document.body.appendChild(emojiParent);
-
 function findAndAddEmojis(imgNode) {
     popupNode.hidden = true;
     imgNode.classList.add('emojifierConverted');
@@ -64,14 +61,18 @@ function findAndAddEmojis(imgNode) {
 }
 
 function addEmojis(imgNode, faces) {
+    const parentNode = document.createElement('div');
+    parentNode.style.position = 'relative';
     for (const {faceRectangle, scores} of faces) {
         const image = new Image();
         image.src = chrome.extension.getURL(`emojis/${getClosestEmoji(scores)}`);
         const rect = imgNode.getBoundingClientRect();
         const ratioX = imgNode.scrollWidth / imgNode.dataset.naturalWidth;
         const ratioY = imgNode.scrollHeight / imgNode.dataset.naturalHeight;
-        const left = rect.left + window.scrollX + faceRectangle.left * ratioX;
-        const top = rect.top + window.scrollY + faceRectangle.top * ratioY;
+        const style = getComputedStyle(imgNode);
+        console.log(parseInt(style.left), parseInt(style.marginLeft));
+        const left = faceRectangle.left * ratioX + (parseInt(style.left)||0) + (parseInt(style.marginLeft)||0);
+        const top = faceRectangle.top * ratioY + (parseInt(style.top)||0);// + (parseInt(style.marginTop)||0);
         const width = faceRectangle.width * ratioX;
         const height = faceRectangle.height * ratioY;
         image.style.position = 'absolute';
@@ -81,8 +82,9 @@ function addEmojis(imgNode, faces) {
         image.style.width = `${width}px`;
         image.style.height = `${height}px`;
         image.classList.add('emojifierEmoji');
-        emojiParent.appendChild(image);
+        parentNode.appendChild(image);
     }
+    imgNode.parentNode.insertBefore(parentNode, imgNode);
 }
 
 function showPopup(imgNode) {
@@ -146,6 +148,7 @@ function isValidImage(image) {
     if (image.tagName === 'IMG') {
         url = image.src;
     } else {
+        return false;
         url = image.style.backgroundImage;
     }
 
@@ -172,12 +175,15 @@ chrome.runtime.onMessage.addListener((message) => {
         let i = 0;
         for (const image of document.images) {
             if (isValidImage(image)) {
-                setTimeout(() => findAndAddEmojis(image), 100 * i);
+                setTimeout(() => findAndAddEmojis(image), 200 * i);
                 ++i;
             }
         }
     } else if (message.command === "reset") {
-        emojiParent.innerHTML = '';
+        const emojis = document.getElementsByClassName('emojifierEmoji');
+        while (emojis[0]) {
+            emojis[0].remove();
+        }
         for (const image of document.getElementsByClassName('emojifierConverted')) {
             image.classList.remove('emojifierConverted');
         }
